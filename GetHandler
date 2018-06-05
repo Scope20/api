@@ -1,0 +1,27 @@
+package com.mymhealth.api.handlers;
+
+import io.vertx.core.Handler;
+import io.vertx.ext.web.RoutingContext;
+
+public class GetRespiratoryHandler implements Handler<RoutingContext> {
+
+    @Override
+    public void handle(RoutingContext routingContext) {
+
+
+        // Validate api spec (if/)
+
+        routingContext
+                .response()
+                .putHeader("Content-Type", "application/json")
+                .setStatusCode(200)
+                //new JsonObject()
+                .end("{\"result\":\"accepted\"}");
+
+        // failure handler /else
+
+    }
+
+}
+
+// authorisation
