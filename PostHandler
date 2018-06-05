@@ -1,0 +1,25 @@
+package com.mymhealth.api.handlers;
+
+import io.vertx.core.Handler;
+import io.vertx.ext.web.RoutingContext;
+
+public class PostRespiratoryHandler implements Handler<RoutingContext> {
+
+
+    @Override
+    public void handle(RoutingContext routingContext) {
+
+        routingContext
+                .response()
+                        .putHeader("Content-Type", "application/json")
+                        .setStatusCode(201)
+                //new JsonObject()
+                        .end("{\"result\":\"accepted\"}");
+
+    }
+
+}
+
+// authorisation
+// send json - "result accepted"
+// send back correct http code
