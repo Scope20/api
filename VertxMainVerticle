@@ -1,0 +1,182 @@
+package com.mymhealth.api;
+
+
+import com.mymhealth.api.handlers.GetRespiratoryHandler;
+import com.mymhealth.api.handlers.PostRespiratoryHandler;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.api.contract.RouterFactoryOptions;
+import io.vertx.ext.web.api.contract.openapi3.OpenAPI3RouterFactory;
+
+
+public class MainVerticle extends AbstractVerticle {
+
+    HttpServer server;
+    Logger logger = LoggerFactory.getLogger("MainVerticle");
+
+
+    @Override
+    public void start(Future future) {
+
+        OpenAPI3RouterFactory.create(this.vertx, "api.yaml", openAPI3RouterFactoryAsyncResult -> {
+
+                    if (openAPI3RouterFactoryAsyncResult.succeeded()) {
+
+                        OpenAPI3RouterFactory routerFactory = openAPI3RouterFactoryAsyncResult.result();
+
+
+                        // -- options
+
+                        RouterFactoryOptions routerFactoryOptions = new RouterFactoryOptions();
+
+                        // Validation Failure Handler (when JSON or values are wrong):
+
+                        routerFactoryOptions.setValidationFailureHandler(handler -> {
+                            handler.response().setStatusCode(400).setStatusMessage("ValidationFailure").end();
+                        });
+
+                        // add security handler:
+
+                        routerFactory.addSecurityHandler("api_key", routingContext -> {
+                            //Handle security here and then call next()
+                            routingContext.next();
+                        });
+
+                        routerFactoryOptions.setRequireSecurityHandlers(false); //will be true
+
+                        routerFactory.setOptions(routerFactoryOptions);
+
+                        // ---
+
+
+                        // add handlers
+
+                        routerFactory.addHandlerByOperationId("postRespiratory", new PostRespiratoryHandler());
+
+                        routerFactory.addHandlerByOperationId("getRespiratory", new GetRespiratoryHandler());
+
+
+
+                        // add Oauth2
+
+//                        OAuth2ClientOptions credentials = new OAuth2ClientOptions()
+//                            .setClientID("YOUR_CLIENT_ID")
+//                            .setClientSecret("YOUR_CLIENT_SECRET")
+//                            .setSite("https://localhost:8080"); {
+
+
+//                        JsonObject name; {
+//
+//                            routerFactory = openAPI3RouterFactoryAsyncResult.result();
+//
+//                            name = new JsonObject("{\n" +
+//                                    "\"realm\": \"master\",\n" +
+//                                    "\"bearer-only\": true,\n" +
+//                                    "\"auth-server-url\": \"http://localhost:8080/auth\",\n" +
+//                                    "\"ssl-required\": \"external\",\n" +
+//                                    "\"realm-public-key\": \"MIIEIjANBgkqhkiG9w0BAQEFAAOCBA8AMIIECgKCBAEAx/mL020pDeoBogHT1G7/yAg+inJvjidekx3G6lCCzatvtPBqsrrDf6LZw0p25ufxllyj9DTb2P5pJtLTIHeV9pnBq4hakfRv3ugPhVtgXgwO4U5nOvohsG7oywv7OSbjqrR3y2SqVpK8Mp62rvGwRERQGj4ac4TwlUD63vcZvK0x1vAPHGzeu88N7xjU/O75dWU0b/EnMTqk/H0fHcx/JZWYnlSu31RcOEtn+1YdRUY7BgS1XPG6jRNYyoHrVxs9vZvlQk5gPm0nyvqe8GghxUVqqPmA+DLC5GMNRKOJJUf8F4Wh7DV3t8rXKbk+NSHH2zHQlNcmwS0y8PWGwnk25gg+sthXh55TygHIP9qBMv4daQ3Z69TCNsEAkSIVKUD0Q1FSK4U5C0SbfUdhx2M6BMXO9ZK1RqV0kMaEAxQLAwC4+MHzGg0Gww4r0f6D9cgFl2B0dQ6h7F9Csa+awWBxZv5l5wYLYjRCjNz5c5jqAxrVIusP2L26LPOSy+Z4unRYCqwUXvpxDPzd8ax9Q5wuXtcasTv5id6D7hS6nkJFPi8L32cXSV9fKE1WroFEoZgQoROjzPjYVQjSy6JGIdGqCIkCF9vJAVsrge2XdzIX4CnEoCjNLPtNmZSxazPb29gIQxdl/V6QLytpRz1KNLEmI06b5o+vVLEu2jc9f6BX2uSe4SRMi2y4CKyxp3jQo8I1+cFZzZS3exgx+rtspzWiKQ9znUvAIJMt4pJxeZ6tT7NWnl9rN0s8ytETlPtYK+7rDp7LE0v7oOHFSlDymN1u4vEN8XZyemIUwuF5eD9qmikDtdBgQU/Oc+c1uk5JIIrFjSlLUR8i+MdtVqUxOfpbXcnRLKl5+iVFxtWJKVLPaZ6cY5qlw8guObhha/FeNEiCsNa5fqfSB889ZVA34LKCrVNYpTfrEFnpIv7qOY8hkPMNr7DoKSc78L4t4wzygKH9SC0uZKxjLHyt/mHYeHPUIfbmS37aE8FzhI2fSj5cmX2aDjmE/e1beQJxvVJZ6x/h89tpP4+Qw85GB4YAUzCouwQYOpdoT1YGbYvQy1EXAgPuaiLd6H6GybIjyeHXHsdMPcuxJ+OEmznpU90MTsTbw3tL2nJMLIwe/Sgp3c5SNjDrZKutL/fJLmbqlARe0IOaHTAKfOVqAlAysiBJaKI/qlTEQigXCNuT9uw6QEEDav7I3n9xlaPuHKtLC9MY9rKrFvzLP2XDEqXyKbEyEJWQey+pyu6yO0jJ8rgKtlWvf6+ZGmo4zjtXW5SS2XdN8R/x+dc+npC82SUtdmWlB4xz 7fIt6iVaa+JzpVm8D8TNQkKyOTXvFd2XuZQk7GhsWwcyg9muRcl3G/v08hld9f83lwIDAQAB\",\n" +
+//                                    "\"resource\": \"vertx\",\n" +
+//                                    "\"use-resource-role-mappings\": true,\n" +
+//                                    "\"credentials\": {\n" +
+//                                    "\"secret\": \"asd1t747-3d11-456f-a553-d8e140cfaf58\"\n" +
+//                                    "}\n" +
+//                                    "}");
+//
+//
+//                            // Initialise OAuth2 library
+//
+//                            OAuth2Auth oauth2 = KeycloakAuth.create(vertx, OAuth2FlowType.CLIENT, name);
+//
+//                            oauth2.authenticate(name.put("username", "clientId").put("password", "secret"), res -> {
+//
+//                                if (res.failed()) {
+//
+//                                    AccessToken token = (AccessToken) res.result();
+//
+//                                    if (token.expired()) {
+//
+//                                        token.refresh(ref -> {
+//
+//                                        if (ref.succeeded()) {
+//
+//                                            logger.info("Successfully refreshed token");
+//
+//                                        } else {
+//
+//                                            // error handling
+//                                            logger.error("Access Token Error: " + res.cause().getMessage());
+//
+//                                }
+//
+//                                    //check permissions
+//                                    token.hasPermission("account:manage-account", r -> {
+//
+//                                        if (r.result()) { //user has permission to manage this account
+//
+//                                        }
+//                        });
+
+                        // Generate the router
+
+                        Router router = routerFactory.getRouter();
+                        server = vertx.createHttpServer(new HttpServerOptions().setPort(8080).setHost("localhost"));
+                        server.requestHandler(router::accept).listen();
+                        future.complete();
+
+
+                    } else {
+
+                        // Something went wrong during router factory initialization
+
+                        Throwable exception = openAPI3RouterFactoryAsyncResult.cause();
+                        logger.error("oops, something when wrong", exception);
+                        future.fail(exception);
+                    }
+                });
+
+                //logger.info("Server started");
+
+    }
+
+
+
+
+
+
+}
+
+
+
+//      AUTHENTICATION
+//
+//            // Authorise User
+//
+//
+//            User.isAuthorised("permissions:permission1234", res -> {
+//
+//                if (res.succeeded()) {
+//
+//                    boolean isAuthorised = res.result();
+//
+//
+//                    if (isAuthorised) {
+//
+//                        logger.info("User is authorised");
+//
+//                    } else {
+//
+//                        logger.info("User is unauthorised");
+//                    }
+//                }
+//            });
+//        });
+//    }
+
+
+
+
