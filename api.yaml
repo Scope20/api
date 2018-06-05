@@ -1,0 +1,237 @@
+openapi: 3.0.0
+info:
+  description: >-
+     Used for all api server-client communications
+  version: 1.0.0
+  title: example OpenAPI
+  contact:
+    name: api
+    url: 'https://api.example.com/'
+    email: support@example.com
+security:
+  - bearerAuth: [] #api security scheme applied globally
+servers:
+# Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/Scope20/respiratoryApi/1.0.0
+  - url: 'https://api.example.com'
+
+paths:
+  /aggregate/respiratory:
+    post:
+      tags:
+        - postRespiratory
+      operationId: postRespiratory
+      requestBody:
+        description: posts datapoints to the database
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postRespiratory'
+      responses:
+        '201':
+          description: Created
+
+        '400':
+          $ref: '#/components/schemas/result'
+
+
+    get:
+      tags:
+        - getRespiratory
+      description: get respiratory data
+      operationId: getRespiratory
+      responses:
+
+        '200':
+          $ref: '#/components/schemas/getRespiratory'
+
+        '400':
+          $ref: '#/components/schemas/result'
+
+components:
+  schemas:
+
+    result:
+      description: result of a call
+      type: object
+      properties:
+        resultResponse:
+          type: string
+          enum: [accepted, bad response]
+
+
+
+    postRespiratory:
+      type: object
+      required:
+      - clientId
+      - timestamp
+      properties:
+        clientId:
+          description: string used to identify individual clients
+          type: string
+          minimum: 2
+          maximum: 64
+        timestamp:
+          description: represents the time the data was acquired
+          type: string
+          format: date-time
+        prescriptionTime:
+          type: integer
+          description: number of hours per day the patient should be on oxgyen
+          minimum: 0
+          maximum: 24
+        flowPrescribedStationary:
+          description: presecribed stationary flow rate, measured in L/pm
+          type: integer
+          minimum: 0
+          maximum: 150
+        flowPrescribedPulse:
+          description: presecribed pulse flow rate, measured in L/pm
+          type: integer
+          minimum: 0
+          maximum: 150
+        treatmentStartDate:
+          description: treatment start date
+          type: string
+          format: date-time
+        minutesPerDay:
+          description: total minutes per day patient is using device
+          type: integer
+          minimum: 0
+          maximum: 1440
+        averageFlowPerDay:
+          description: average flow per day, measured in L/pm
+          type: integer
+          minimum: 0
+          maximum: 150
+        maxFlowPerDay:
+          description: maximum flow per day, measured in L/pm
+          type: integer
+          minimum: 0
+          maximum: 150
+        minFlowPerDay:
+          description: minimum flow per day, measured in L/pm
+          type: integer
+          minimum: 0
+          maximum: 150
+
+    getRespiratory:
+      type: object
+      properties:
+        clientId:
+          description: string used to identify individual clients
+          type: string
+          minimum: 2
+          maximum: 64
+        gpDetails:
+          description: array of strings describing data concerning general practitioner
+          type: object
+          items:
+            type: string
+            properties:
+              gpSurgeryCode:
+                description: code used to identify gp surgery
+                type: string
+                minLength: 5
+                maxLength: 20
+              gpFirstName:
+                description: first name of general practitioner
+                type: string
+                minLength: 2
+                maxLength: 50
+              gpSurname:
+                description: surname of general practitioner
+                type: string
+                minLength: 2
+                maxLength: 50
+              gpSurgeryName:
+                description: name of gp surgery
+                type: string
+                minLength: 2
+                maxLength: 256
+              gpSurgeryAddress1:
+                description: gp surgery address line 1
+                type: string
+                minLength: 2
+                maxLength: 256
+              gpSurgeryAddress2:
+                description: gp surgery address line 2
+                type: string
+                minLength: 2
+                maxLength: 256
+              gpSurgeryCity:
+                description: city surgery is located in
+                type: string
+                minLength: 2
+                maxLength: 64
+              gpSurgeryPostcode:
+                description: surgery postcode
+                type: string
+                minLength: 6
+                maxLength: 20
+              gpTelephone:
+                description: contact telephone number for gp surgery
+                type: string
+                minLength: 6
+                maxLength: 64
+              gpEmail:
+                description: contact email for gp surgery
+                type: string
+                minLength: 6
+                maxLength: 128
+        patientAddress:
+          type: array
+          items:
+            type: string
+            properties:
+              mdAddress1:
+                description: patient address line 1
+                type: string
+                minLength: 1
+                maxLength: 256
+              mdAddress2:
+                description: patient address line 2
+                type: string
+                minLength: 1
+                maxLength: 256
+        symptomScore:
+          description: score describing Normal, Mild, Moderate and Severe Deterioration of patient symptoms today
+          type: integer
+          minimum: 1
+          maximum: 4
+        catScore:
+          description: CAT questionnaire score to measure impact of COPD on well being today
+          type: integer
+          minimum: 0
+          maximum: 40
+        meterReading:
+          description: electricity meter reading
+          type: array
+          required:
+          - normalMeterReading
+          items:
+            type: integer
+            properties:
+              normalMeterReading:
+                description: typical electricity meter reading
+                type: integer
+                minimum: 0
+                maximum: 99999
+              offPeakmeterReading:
+                description: for patients whos electricitry provider offers lower-priced off peak electricity where 'normalMeterReading' would be day rate and 'offPeakmeterReading' night rate.
+                type: integer
+                minimum: 0
+                maximum: 99999
+        oxygenSaturationsOxygenPc:
+          description: patient oxgygen saturation level
+          type: number
+          format: float
+
+  securitySchemes:
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
